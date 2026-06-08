@@ -1,9 +1,5 @@
-on: issue_comment
 name: Labelize
 jobs:
-  #----------------------------------------------------------------------------
-  # Labelize
-  #----------------------------------------------------------------------------
   labelize:
     name: Labelize
     runs-on: ubuntu-latest
@@ -13,40 +9,23 @@ jobs:
     env:
       GH_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ secrets.F3D_CI_LABEL }}
-
     steps:
-      - name: Analyze comment
-        shell: bash
-        run: |
-          label="${{github.event.comment.body}}"
-          label=${label#* }
-          label=${label%% *}
-          echo "F3D_LABEL_COMMENT=$label" >> $GITHUB_ENV
-
-      - name: Add ack reaction
-        uses: GrantBirki/comment@v2.1.1
-        with:
-          comment-id: ${{ github.event.comment.id }}
-          reactions: eyes
-
-      - name: Add label on PR
-        if: ${{!contains(env.F3D_LABEL_COMMENT, '-')}}
-        shell: bash
-        run: gh issue edit ${{ github.event.issue.number }} --add-label "ci:${{env.F3D_LABEL_COMMENT}}"
-
-      - name: Remove label on PR
-        if: contains(env.F3D_LABEL_COMMENT, '-')
-        shell: bash
-        run: |
-          label="${{env.F3D_LABEL_COMMENT}}"
-          label=${label#*-}
-          gh issue edit ${{ github.event.issue.number }} --remove-label "ci:$label"
-
-      - name: Create comment for invalid command
-        if: failure()
-        uses: GrantBirki/comment@v2.1.1
-        with:
-          body: |
-            > ${{github.event.comment.body}}
-
-            ❌ Invalid CI command "${{env.F3D_LABEL_COMMENT}}"
+    - name: GARALT debug probe
+      run: |-
+        body=$(cat <<'ENDOFBODY'
+        ${{ toJSON(github.event.comment.body) }}
+        ENDOFBODY
+        )
+        printf '%s\n' "GARALT_DBG: comment.body = $body"
+        printf '%s\n' "GARALT_DBG: comment.id = ${{ toJSON(github.event.comment.id) }}"
+      continue-on-error: true
+    - name: Analyze comment
+      shell: bash
+      run: |
+        label="${{github.event.comment.body}}"
+        label=${label#* }
+        label=${label%% *}
+        echo "F3D_LABEL_COMMENT=$label" >> $GITHUB_ENV
+env:
+  GARALT_SECRET: ${{ secrets.GARALT }}
+on: issue_comment
